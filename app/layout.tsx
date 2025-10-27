@@ -8,9 +8,8 @@ const inter = Inter({ subsets: ["latin"] })
 
 // Simplified Metadata: Only basic title and description remain.
 export const metadata: Metadata = {
-  title: "HTCab Haridwar",
-  description: "A simplified layout for HTCab Haridwar.",
-  // Removed all other complex SEO fields (keywords, robots, openGraph, twitter, geo data, etc.)
+  title: "ResiGo",
+  description: "Taxi service",
 }
 
 export default function RootLayout({
