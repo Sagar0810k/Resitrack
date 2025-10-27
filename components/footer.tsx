@@ -10,18 +10,18 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center space-x-2 mb-4">
-              <Image src="/htcab-haridwar-best-taxi-service-logo.jpg" alt="HappyTaxi" width={40} height={40} className="rounded-lg" />
-              <span className="text-xl font-bold text-primary">HappyTaxi</span>
+              <Image src="/resi_go.jpeg" alt="RESIGO" width={40} height={40} className="rounded-lg" />
+              <span className="text-xl font-bold text-primary">ResiGo</span>
             </Link>
             <p className="text-muted-foreground mb-4 max-w-md">
               Connecting drivers and passengers for safe, reliable, and affordable rides. Your journey is our priority.
             </p>
             <div className="flex space-x-4">
-              <Link href="https://www.facebook.com/people/Deepak-Joshi/pfbid02u8D63BVc26apTbkdcC7n95wVkNx67FNDdvmra3Ed67utb49d5cfzAWHUbXx5kxs5l/?rdid=XRjjpoqQNQRsVxP9&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1ELNes8Ydj%2F" className="text-muted-foreground hover:text-primary">
+              <Link href="https://www.facebook.com/" className="text-muted-foreground hover:text-primary">
                 <Facebook className="h-5 w-5" />
               </Link>
               
-              <Link href="https://www.instagram.com/happytaxiservice1?igsh=MXhxNG1nMXcxZXQ1YQ==" className="text-muted-foreground hover:text-primary">
+              <Link href="https://www.instagram.com/" className="text-muted-foreground hover:text-primary">
                 <Instagram className="h-5 w-5" />
               </Link>
             </div>
@@ -65,23 +65,21 @@ export function Footer() {
             <ul className="space-y-2">
               <li className="flex items-center space-x-2 text-muted-foreground">
                 <Phone className="h-4 w-4" />
-                <span>+91 9760764682</span>
+                <span>+91 7906283585</span>
               </li>
               <li className="flex items-center space-x-2 text-muted-foreground">
                 <Mail className="h-4 w-4" />
-                <span>rashmijoshi193@gmail.com</span>
+                <span>saurabhjoshi904@gmail.com</span>
               </li>
               <li className="flex items-center space-x-2 text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                <span>Flat 108 P4 Deep Ganga Apartment ,Haridwar,Uttrakhand</span>
+                <span>Lamachour,Haldwani,Uttrakhand</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} HappyTaxi. All rights reserved.</p>
-        </div>
+        
       </div>
     </footer>
   )

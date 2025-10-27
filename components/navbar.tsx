@@ -1,4 +1,3 @@
-// navbar.tsx
 "use client"
 
 import { useState } from "react"
@@ -54,8 +53,8 @@ export function Navbar({ onLogout, user, showGetStarted }: NavbarProps) {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <Image src="/htcab-haridwar-best-taxi-service-logo.jpg" alt="HappyTaxi" width={40} height={40} className="rounded-lg" />
-              <span className="text-xl font-bold text-primary">HappyTaxi</span>
+              <Image src="/resi_go.jpeg" alt="RESIGO" width={40} height={40} className="rounded-lg" />
+              <span className="text-xl font-bold text-primary">ResiGo</span>
             </Link>
           </div>
 

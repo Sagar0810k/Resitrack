@@ -19,7 +19,7 @@ export function CTASection() {
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Join thousands of users who trust HappyTaxi for their daily commute. Whether you're a passenger or driver,
+            Join thousands of users who trust ResiGo for their daily commute. Whether you're a passenger or driver,
             we've got you covered.
           </p>
         </div>
