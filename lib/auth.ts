@@ -2,7 +2,7 @@ import { supabase } from "./supabase"
 
 // Simple authentication system for demo
 export async function hashPassword(password: string): Promise<string> {
-  return btoa(password) // Base64 encoding for demo
+  return btoa(password) 
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
