@@ -1,24 +1,17 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-// These imports failed to resolve, indicating a potential environment or installation issue.
-// We keep them as they are correct for the functionality, assuming the required packages
-// (@ai-sdk/react and ai) are installed in the host environment.
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-// Switched from Sparkles to Car icon
 import { MessageCircle, X, Send, Car } from "lucide-react" 
-
-// The old SAR-related ToolEvent type is removed as it's no longer relevant.
 
 export default function Chatbot() {
   const [open, setOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   
-  // Ref for the scrollable message container
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const { messages, sendMessage, status, addToolResult } = useChat({
@@ -28,34 +21,26 @@ export default function Chatbot() {
       const input: any = toolCall.args
       let result = "Tool call executed successfully."
 
-      // --- TAXI SERVICE TOOL HANDLING LOGIC (Matches route.ts) ---
 
       if (name === "requestRide") {
-        // Mocking the ride request service response
         result = `Booking service received request: Pickup at '${input.pickupAddress}', Destination at '${input.destinationAddress}'. Type: ${input.rideType || 'Standard'}. Ride ID: RG-${Date.now()}`
       } else if (name === "checkRideStatus") {
-        // Mocking the ride status check
         const rideId = input.rideId || 'your most recent ride (RG-123456)'
         result = `Checked status for ${rideId}. Status is: 'Driver John (Honda City, License: XYZ123) is 5 minutes away.'`
       } else if (name === "getEstimate") {
-        // Mocking the estimate service response
         result = `Estimate service calculated: Trip from '${input.startAddress}' to '${input.endAddress}' will cost approximately $15.50 and take 25 minutes.`
       } else {
-        // Fallback for any unknown tool
         result = `Unknown tool call: ${name}`
       }
       
-      // CRITICAL: Sends descriptive tool result back to the model for final text generation
       addToolResult({ tool: name, toolCallId: toolCall.toolCallId, output: result })
     },
   })
 
-  // Focus the input when the chat opens
   useEffect(() => {
     if (open) inputRef.current?.focus()
   }, [open])
 
-  // Effect to auto-scroll to the bottom when new messages arrive
   useEffect(() => {
     if (open && messagesEndRef.current) {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight
@@ -98,7 +83,6 @@ export default function Chatbot() {
                     <MessageCircle className="w-8 h-8 text-primary" />
                   </div>
                   <div>
-                    {/* Updated Welcome Message */}
                     <p className="font-medium text-foreground">Welcome to ResiGo Assistant</p>
                     <p className="text-sm text-muted-foreground mt-1">Ask me to book a ride, check status, or get an estimate!</p>
                   </div>
@@ -115,7 +99,7 @@ export default function Chatbot() {
                 >
                   {m.role === "assistant" && (
                     <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center flex-shrink-0 shadow-md shadow-primary/30">
-                      <Car className="w-4 h-4 text-primary" /> {/* Using Car icon */}
+                      <Car className="w-4 h-4 text-primary" /> 
                     </div>
                   )}
                   <div
@@ -145,7 +129,7 @@ export default function Chatbot() {
               {status === "in_progress" && (
                 <div className="flex gap-3 animate-in slide-in-from-bottom-2 duration-300">
                   <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center flex-shrink-0 shadow-md shadow-primary/30">
-                    <Car className="w-4 h-4 text-primary animate-pulse" /> {/* Using Car icon */}
+                    <Car className="w-4 h-4 text-primary animate-pulse" /> 
                   </div>
                   <div className="bg-background/90 backdrop-blur-sm rounded-2xl px-4 py-3 border border-border/50 shadow-md">
                     <div className="flex gap-1">
@@ -181,7 +165,6 @@ export default function Chatbot() {
                 <input
                   ref={inputRef}
                   name="message"
-                  // Updated Placeholder
                   placeholder="Ask to book a ride or check the status..."
                   className="flex-1 rounded-xl border-2 bg-background/90 backdrop-blur-sm px-4 py-3 text-sm focus:border-primary focus:outline-none transition-colors shadow-inner"
                   disabled={status === "in_progress"}
@@ -204,7 +187,7 @@ export default function Chatbot() {
             className="h-14 px-6 rounded-full shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-110 animate-glow"
           >
             <MessageCircle className="w-5 h-5 mr-2" />
-            {/* Updated Button Text */}
+            
             <span className="font-medium">Ask ResiGo Assistant</span>
           </Button>
         )}
