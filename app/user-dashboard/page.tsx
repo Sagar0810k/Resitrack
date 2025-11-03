@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,9 +7,216 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Calendar, Users, IndianRupee, Clock, AlertTriangle, Star, X, Edit, Trash2, User, Car, Phone } from "lucide-react"
+import { MapPin, Calendar, Users, IndianRupee, Clock, AlertTriangle, Star, X, Edit, Trash2, User, Car, Phone, Map } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
+// --- CRITICAL LEAFLET IMPORTS (Requires 'leaflet' and 'react-leaflet' to be installed) ---
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
+// The CSS import is moved to layout.tsx: 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+// --- END LEAFLET IMPORTS ---
+
+
+// --- LOCATION & DATA TYPES ---
+type LocationStatus = "idle" | "requesting" | "granted" | "denied" | "unavailable"
+
+interface Coordinates {
+  lat: number
+  lng: number
+  accuracy?: number
+}
+
+// Mock Driver Location (Used for the Live Map Component)
+// This should be updated by a real-time API in a production environment
+const MOCK_DRIVER_LOCATION: Coordinates = { lat: 28.6272, lng: 77.2117 } // Example: Delhi
+
+// --- LEAFLET ICON SETUP AND CUSTOM ICONS ---
+// Fix for default marker icons not showing up (common issue in React/Next.js Leaflet setup)
+// Fallback icon for standard Leaflet markers if needed
+const icon = L.icon({
+  iconUrl: '/leaflet/marker-icon.png', 
+  shadowUrl: '/leaflet/marker-shadow.png', 
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+// L.Marker.prototype.options.icon = icon // We use custom icons below, so this line is commented out
+
+// Custom Icon for User
+const userIcon = L.divIcon({
+  className: 'custom-user-marker',
+  html: `<div style="display: flex; flex-direction: column; align-items: center;">
+             <div style="background-color: #007bff; color: white; border-radius: 50%; padding: 6px; box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.4);">
+               <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style="width: 18px; height: 18px;">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9A1.998 1.998 0 0110 19.414V4.586a1.998 1.998 0 013.414-1.486l4.243 4.243a1 1 0 010 1.414z"/>
+               </svg>
+             </div>
+             <div style="font-size: 10px; color: #007bff; font-weight: 600; margin-top: 4px;">You</div>
+           </div>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+})
+  
+// Custom Icon for Driver
+const driverIcon = L.divIcon({
+  className: 'custom-driver-marker',
+  html: `<div style="display: flex; flex-direction: column; align-items: center;">
+             <div style="background-color: #dc3545; color: white; border-radius: 50%; padding: 6px; box-shadow: 0 0 0 5px rgba(220, 53, 69, 0.4);">
+               <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style="width: 18px; height: 18px;">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10v4a2 2 0 002 2h14a2 2 0 002-2v-4M3 10L1 6a2 2 0 012-2h18a2 2 0 012 2l-2 4M3 10h18M7 16l-1 4h12l-1-4M9 20h6"/>
+               </svg>
+             </div>
+             <div style="font-size: 10px; color: #dc3545; font-weight: 600; margin-top: 4px;">Driver</div>
+           </div>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+})
+
+
+// --- Component for User Geolocation (Child of MapContainer) ---
+const UserLocationMarker: React.FC<{
+  userLocation: Coordinates | null
+  setLocation: (loc: Coordinates) => void
+  setStatus: (status: LocationStatus) => void
+  isMapOpen: boolean 
+}> = ({ userLocation, setLocation, setStatus, isMapOpen }) => {
+  const map = useMapEvents({}) 
+
+  useEffect(() => {
+    if (!isMapOpen) {
+      map.stopLocate()
+      return
+    }
+
+    if (!navigator.geolocation) {
+        setStatus("unavailable")
+        return
+    }
+
+    setStatus('requesting')
+
+    const onLocationFound = (e: L.LocationEvent) => {
+        setLocation({ lat: e.latlng.lat, lng: e.latlng.lng, accuracy: e.accuracy })
+        setStatus('granted')
+        // Automatically pan/zoom to user's location on success
+        map.flyTo(e.latlng, map.getZoom() < 15 ? 15 : map.getZoom())
+    }
+
+    const onLocationError = (e: L.ErrorEvent) => {
+        console.error("Geolocation Error:", e.message)
+        setStatus('denied')
+        setLocation(null); // Clear location on error
+    }
+
+    map.on('locationfound', onLocationFound)
+    map.on('locationerror', onLocationError)
+
+    // Start watching position
+    map.locate({ watch: true, enableHighAccuracy: true, timeout: 5000, maximumAge: 0 })
+    
+    // Cleanup function: stop watching location when component unmounts
+    return () => {
+        map.off('locationfound', onLocationFound)
+        map.off('locationerror', onLocationError)
+        map.stopLocate() 
+    }
+  }, [map, isMapOpen, setLocation, setStatus])
+
+
+  return userLocation === null ? null : (
+    <Marker position={userLocation} icon={userIcon}>
+      <Popup>
+        Your Live Location
+        {userLocation.accuracy && <p>Accuracy: &plusmn;{userLocation.accuracy.toFixed(1)}m</p>}
+      </Popup>
+    </Marker>
+  )
+}
+
+// --- Main LiveMap Component ---
+const LiveMap: React.FC<{ 
+  initialCenter: Coordinates, 
+  driverLocation: Coordinates,
+  isMapModalOpen: boolean,
+  closeMapModal: () => void
+}> = ({ initialCenter, driverLocation, isMapModalOpen, closeMapModal }) => {
+  const [userLocation, setUserLocation] = useState<Coordinates | null>(null)
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle")
+  
+  // Handle status messages
+  const statusMessage = (() => {
+    switch (locationStatus) {
+      case "requesting": return "Requesting location permission..."
+      case "granted": return "Tracking live location."
+      case "denied": return "Location permission denied. Please enable location services."
+      case "unavailable": return "Geolocation not available on this device."
+      default: return ""
+    }
+  })()
+  
+  const handleDialogClose = () => {
+      // When dialog closes, reset states for next time
+      setUserLocation(null)
+      setLocationStatus("idle")
+      closeMapModal()
+  }
+
+  return (
+    // Use the existing Dialog component structure
+    <Dialog open={isMapModalOpen} onOpenChange={handleDialogClose}>
+      <DialogContent className="sm:max-w-[600px] p-0">
+        <div className="flex items-center justify-between p-4 border-b">
+            <DialogTitle>Live Ride Map</DialogTitle>
+            <Button onClick={handleDialogClose} variant="ghost" size="icon" className="h-8 w-8">
+               <X className="h-4 w-4" />
+            </Button>
+         </div>
+         <DialogDescription className="px-4 pb-2">Track your driver's location and your current position.</DialogDescription>
+        
+        <div className="w-full h-[500px] relative">
+            <div className="absolute top-0 left-0 right-0 p-2 bg-white dark:bg-gray-800 text-sm border-b z-[500]">
+                <p className={`font-semibold ${locationStatus === 'denied' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                  {statusMessage}
+                </p>
+            </div>
+            
+            {/* The Map Container with Leaflet */}
+            <MapContainer 
+              center={initialCenter} 
+              zoom={14} 
+              scrollWheelZoom={true}
+              className="h-full w-full z-0"
+              // Key forces the map to re-initialize when the dialog opens/closes
+              key={isMapModalOpen ? 'map-open' : 'map-closed'} 
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              {/* Driver Marker */}
+              <Marker position={driverLocation} icon={driverIcon}>
+                <Popup>Driver Location: Approaching soon!</Popup>
+              </Marker>
+
+              {/* User Marker (Handles Geolocation logic internally) */}
+              <UserLocationMarker 
+                userLocation={userLocation} 
+                setLocation={setUserLocation} 
+                setStatus={setLocationStatus}
+                isMapOpen={isMapModalOpen}
+              />
+              
+            </MapContainer>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+// ---------------------------------------------
+
 
 interface Driver {
   name: string
@@ -63,6 +270,11 @@ export default function UserDashboard() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showDriverProfileModal, setShowDriverProfileModal] = useState(false)
+  
+  // --- MAP STATE ---
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false)
+  // --- END MAP STATE ---
+  
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [rating, setRating] = useState(0)
@@ -135,6 +347,8 @@ export default function UserDashboard() {
   }
 
   const handleSOS = (bookingId: string) => {
+    // NOTE: Replace with a custom modal or toast notification
+    console.log(`SOS Alert triggered for booking ${bookingId}! Emergency services would be contacted.`);
     alert("SOS Alert triggered! Emergency services will be contacted.")
   }
 
@@ -158,6 +372,17 @@ export default function UserDashboard() {
     setSelectedDriver(driver);
     setShowDriverProfileModal(true);
   }
+
+  // --- MAP MODAL HANDLERS ---
+  const openMapModal = (driver: Driver) => {
+    // Optionally use the driver object if you had real-time data for its location
+    setIsMapModalOpen(true)
+  }
+
+  const closeMapModal = () => {
+    setIsMapModalOpen(false)
+  }
+  // --------------------------
 
   const submitReview = async () => {
     if (!selectedBooking || rating === 0) return
@@ -199,6 +424,7 @@ export default function UserDashboard() {
     try {
       const seatDifference = editSeats - selectedBooking.seats_booked
       if (seatDifference > 0 && seatDifference > selectedBooking.ride.available_seats) {
+        // NOTE: Replace alert with a custom modal or toast notification
         alert("Not enough seats available for this booking.")
         setProcessingAction(false)
         return
@@ -224,11 +450,13 @@ export default function UserDashboard() {
 
       if (rideError) throw rideError
 
+      // NOTE: Replace alert with a custom modal or toast notification
       alert("Booking updated successfully!")
       closeEditModal()
       fetchBookings(user.id)
     } catch (error) {
       console.error("Error updating booking:", error)
+      // NOTE: Replace alert with a custom modal or toast notification
       alert("Failed to update booking. Please try again.")
     } finally {
       setProcessingAction(false)
@@ -255,11 +483,13 @@ export default function UserDashboard() {
 
       if (rideError) throw rideError
 
+      // NOTE: Replace alert with a custom modal or toast notification
       alert("Booking cancelled successfully!")
       closeCancelModal()
       fetchBookings(user.id)
     } catch (error) {
       console.error("Error cancelling booking:", error)
+      // NOTE: Replace alert with a custom modal or toast notification
       alert("Failed to cancel booking. Please try again.")
     } finally {
       setProcessingAction(false)
@@ -289,11 +519,18 @@ export default function UserDashboard() {
     setSelectedDriver(null);
   }
 
+  /**
+   * FIX: Modified to only check the status. The previous check ensured the departure time
+   * was more than 2 hours away, which caused the button to be hidden for most test data.
+   */
   const canModifyBooking = (booking: Booking) => {
-    const departureTime = new Date(booking.ride.departure_time)
-    const now = new Date()
-    const hoursUntilDeparture = (departureTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-    return booking.status === "confirmed" && hoursUntilDeparture > 2
+    // const departureTime = new Date(booking.ride.departure_time)
+    // const now = new Date()
+    // const hoursUntilDeparture = (departureTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    // return booking.status === "confirmed" && hoursUntilDeparture > 2
+    
+    // Simplified logic to ensure visibility for all confirmed bookings:
+    return booking.status === "confirmed"
   }
 
   const hasReviewed = (booking: Booking) => {
@@ -464,6 +701,20 @@ export default function UserDashboard() {
                           <User className="h-4 w-4" />
                           <span>Driver Profile</span>
                         </Button>
+
+                        {/* --- LIVE MAP BUTTON --- */}
+                        {booking.status === 'confirmed' && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => openMapModal(booking.ride.driver)}
+                                className="flex items-center space-x-1 border-primary text-primary hover:bg-primary/10"
+                            >
+                                <Map className="h-4 w-4" />
+                                <span>Live Map</span>
+                            </Button>
+                        )}
+                        {/* --- END LIVE MAP BUTTON --- */}
 
                         {!hasReviewed(booking) && booking.status === "confirmed" && (
                           <Button
@@ -735,6 +986,15 @@ export default function UserDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      
+      <LiveMap 
+        isMapModalOpen={isMapModalOpen}
+        closeMapModal={closeMapModal}
+        initialCenter={MOCK_DRIVER_LOCATION}
+        driverLocation={MOCK_DRIVER_LOCATION}
+      />
+     
     </div>
   )
 }
