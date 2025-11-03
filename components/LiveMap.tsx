@@ -5,8 +5,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaf
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { X } from 'lucide-react'
+// The Button and X imports are now less critical for the close mechanism, 
+// but kept for other uses if any.
 
 
 // --- LEAFLET ICON SETUP AND CUSTOM ICONS ---
@@ -155,18 +155,19 @@ export const LiveMapDialog: React.FC<LiveMapDialogProps> = ({ initialCenter, dri
   }
 
   return (
-    // Use the existing Dialog component structure
     <Dialog open={isMapModalOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[600px] p-0">
-        <div className="flex items-center justify-between p-4 border-b">
+      {/* FIX 1: Removed 'p-0' and replaced the custom header 'div' with the standard DialogHeader.
+          This correctly positions the built-in close button in the top right corner. 
+          The built-in close button automatically triggers the onOpenChange/handleDialogClose function.
+      */}
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
             <DialogTitle>Live Ride Map</DialogTitle>
-            <Button onClick={handleDialogClose} variant="ghost" size="icon" className="h-8 w-8">
-               <X className="h-4 w-4" />
-            </Button>
-         </div>
-         <DialogDescription className="px-4 pb-2">Track your driver's location and your current position.</DialogDescription>
+            <DialogDescription>Track your driver's location and your current position.</DialogDescription>
+        </DialogHeader>
         
-        <div className="w-full h-[500px] relative">
+        <div className="w-full h-[500px] relative -mt-4"> 
+            {/* The -mt-4 pulls the content up slightly to offset the DialogHeader's padding */}
             <div className="absolute top-0 left-0 right-0 p-2 bg-white dark:bg-gray-800 text-sm border-b z-[500]">
                 <p className={`font-semibold ${locationStatus === 'denied' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                   {statusMessage}
@@ -181,9 +182,11 @@ export const LiveMapDialog: React.FC<LiveMapDialogProps> = ({ initialCenter, dri
               className="h-full w-full z-0"
               // Key forces the map to re-initialize when the dialog opens/closes
               key={isMapModalOpen ? 'map-open' : 'map-closed'} 
+              attributionControl={false}
             >
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                // FIX 2: Set attribution to an empty string to hide the Leaflet/OSM watermark
+                attribution="" 
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
